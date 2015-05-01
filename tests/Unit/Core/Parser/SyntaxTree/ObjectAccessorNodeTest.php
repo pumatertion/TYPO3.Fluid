@@ -8,6 +8,7 @@ namespace TYPO3\Fluid\Tests\Unit\Core\Parser\SyntaxTree;
 
 use TYPO3\Fluid\Core\Variables\StandardVariableProvider;
 use TYPO3\Fluid\Core\Parser\SyntaxTree\ObjectAccessorNode;
+use TYPO3\Fluid\Tests\Unit\Core\Parser\SyntaxTree\Fixtures\ObjectHavingGetter;
 use TYPO3\Fluid\Tests\UnitTestCase;
 
 /**
@@ -46,6 +47,10 @@ class ObjectAccessorNodeTest extends UnitTestCase {
 			array(array('foo' => 'bar'), 'foo', 'bar'),
 			array(array('foo' => array('bar' => 'test')), 'foo.bar', 'test'),
 			array(array('foo' => array('bar' => 'test'), 'dynamic' => 'bar'), 'foo.{dynamic}', 'test'),
+			array(array('foo' => array('bar' => 'test'), 'dynamic' => 'bar'), 'foo.{dynamic}', 'test'),
+			array(array('foo' => new ObjectHavingGetter()), 'foo.accessible', 'accessible'),
+			array(array('foo' => new ObjectHavingGetter()), 'foo.notAccessible1', NULL),
+			array(array('foo' => new ObjectHavingGetter()), 'foo.notAccessible2', NULL)
 		);
 	}
 

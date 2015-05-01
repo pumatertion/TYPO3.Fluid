@@ -6,6 +6,8 @@ namespace TYPO3\Fluid\Core\Parser\SyntaxTree;
  * See LICENSE.txt that was shipped with this package.
  */
 
+use ReflectionMethod;
+use ReflectionClass;
 use TYPO3\Fluid\Core\Rendering\RenderingContextInterface;
 
 /**
@@ -105,14 +107,47 @@ class ObjectAccessorNode extends AbstractNode {
 				$subValue = self::getPropertyPath(self::$variables, substr($pathSegment, $start + 1, $end - $start - 1), $renderingContext);
 				$pathSegment = substr($pathSegment, 0, $start) . $subValue . substr($pathSegment, $end + 1);
 			}
-			$subject = is_object($subject) && isset($subject->$pathSegment) || is_array($subject) && isset($subject[$pathSegment])
-				? (is_array($subject) || $subject instanceof \ArrayAccess ? $subject[$pathSegment] : $subject->$pathSegment)
-				: NULL;
-
+			$methodName = 'get'.ucfirst($pathSegment);
+			if (is_object($subject) && self::objectSupportsGetObjectPropertyPath($subject, $methodName)) {
+				$subject = self::getObjectPropertyPath($subject, $methodName);
+			} else {
+				$subject = is_object($subject) && isset($subject->$pathSegment) || is_array($subject) && isset($subject[$pathSegment])
+					? (is_array($subject) || $subject instanceof \ArrayAccess ? $subject[$pathSegment] : $subject->$pathSegment)
+					: NULL;
+			}
 			if ($subject === NULL) {
 				break;
 			}
 		}
 		return $subject;
+	}
+
+	/**
+	 * @param object $subject
+	 * @param string $methodName
+	 * @return boolean
+	 */
+	final static private function objectSupportsGetObjectPropertyPath($subject, $methodName) {
+		$result = NULL;
+		$className = get_class($subject);
+		$classReflection = new ReflectionClass($className);
+
+		if($classReflection->hasMethod($methodName)){
+			$methodReflection = new ReflectionMethod($className, $methodName);
+			if($methodReflection->isPublic() && !$methodReflection->isProtected() && !$methodReflection->isClosure() && $methodReflection->getNumberOfRequiredParameters() === 0){
+				return TRUE;
+			}
+		}
+
+		return FALSE;
+	}
+
+	/**
+	 * @param object $subject
+	 * @param string $methodName
+	 * @return mixed
+	 */
+	final static private function getObjectPropertyPath($subject, $methodName) {
+		return $subject->$methodName();
 	}
 }
